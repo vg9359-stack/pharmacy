@@ -1,0 +1,7 @@
+pharmacy.db
+__pycache__/
+*.pyc
+receipt_*.pdf
+Sales_Report.xlsx
+static/uploads/*
+!static/uploads/.gitkeep

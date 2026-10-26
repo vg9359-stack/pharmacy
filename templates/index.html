@@ -1,0 +1,395 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PharmaCare Pro Suite</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body class="bg-slate-100 text-slate-800 font-sans min-h-screen">
+
+    <header class="bg-white border-b border-slate-200 sticky top-0 z-50">
+        <div class="max-w-7xl mx-auto px-6 py-4 flex justify-between items-center">
+            <div class="flex items-center space-x-3">
+                <span class="text-2xl">🏥</span>
+                <h1 class="text-xl font-bold text-emerald-600">PHARMACARE PRO</h1>
+            </div>
+            <a href="/api/export/excel" class="bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs px-4 py-2 rounded-lg transition">📊 Export Sales to Excel</a>
+        </div>
+    </header>
+
+    <main class="max-w-7xl mx-auto px-6 py-6">
+        <!-- Navigation Tabs -->
+        <div class="flex space-x-2 border-b border-slate-200 mb-6 overflow-x-auto">
+            <button onclick="switchTab('dashboard')" id="tab-dashboard" class="tab-btn px-5 py-2.5 font-bold text-sm border-b-2 border-emerald-600 text-emerald-600">📊 Dashboard</button>
+            <button onclick="switchTab('forecasting')" id="tab-forecasting" class="tab-btn px-5 py-2.5 font-bold text-sm text-slate-500 hover:text-slate-800">🔮 AI Forecast Predictor</button>
+            <button onclick="switchTab('refills')" id="tab-refills" class="tab-btn px-5 py-2.5 font-bold text-sm text-slate-500 hover:text-slate-800">📱 WhatsApp Refill Alerts</button>
+            <button onclick="switchTab('analytics')" id="tab-analytics" class="tab-btn px-5 py-2.5 font-bold text-sm text-slate-500 hover:text-slate-800">📈 Analytics & Trends</button>
+            <button onclick="switchTab('inventory')" id="tab-inventory" class="tab-btn px-5 py-2.5 font-bold text-sm text-slate-500 hover:text-slate-800">💊 Inventory & Storage</button>
+            <button onclick="switchTab('pos')" id="tab-pos" class="tab-btn px-5 py-2.5 font-bold text-sm text-slate-500 hover:text-slate-800">🛒 POS Checkout</button>
+            <button onclick="switchTab('sales')" id="tab-sales" class="tab-btn px-5 py-2.5 font-bold text-sm text-slate-500 hover:text-slate-800">📋 Sales & Invoices</button>
+        </div>
+
+        <!-- 1. DASHBOARD TAB -->
+        <section id="content-dashboard" class="tab-content space-y-6">
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+                <div class="bg-white p-5 rounded-xl border border-slate-200 shadow-sm">
+                    <p class="text-xs font-bold text-slate-400">TOTAL MEDICINES</p>
+                    <p id="m-meds" class="text-2xl font-black text-blue-600 mt-1">0</p>
+                </div>
+                <div class="bg-white p-5 rounded-xl border border-slate-200 shadow-sm">
+                    <p class="text-xs font-bold text-slate-400">LOW STOCK ALERTS</p>
+                    <p id="m-low" class="text-2xl font-black text-amber-500 mt-1">0</p>
+                </div>
+                <div class="bg-white p-5 rounded-xl border border-slate-200 shadow-sm">
+                    <p class="text-xs font-bold text-slate-400">REFILLS DUE (7 DAYS)</p>
+                    <p id="m-ref" class="text-2xl font-black text-purple-600 mt-1">0</p>
+                </div>
+                <div class="bg-white p-5 rounded-xl border border-slate-200 shadow-sm">
+                    <p class="text-xs font-bold text-slate-400">TOTAL REVENUE</p>
+                    <p id="m-rev" class="text-2xl font-black text-emerald-600 mt-1">₹0.00</p>
+                </div>
+            </div>
+
+            <div class="bg-white p-6 rounded-xl border border-rose-200 bg-rose-50/30">
+                <h3 class="text-sm font-bold text-rose-600 mb-3">⚠️ Critical Expiry Watchlist (Next 30 Days)</h3>
+                <div id="expiry-watchlist" class="grid grid-cols-1 md:grid-cols-3 gap-3"></div>
+            </div>
+        </section>
+
+        <!-- 2. CREATIVE FEATURE 5: AI FORECASTING TAB -->
+        <section id="content-forecasting" class="tab-content hidden space-y-6">
+            <div class="bg-white p-6 rounded-xl border border-slate-200 shadow-sm">
+                <h3 class="text-base font-bold text-emerald-600 mb-1">🔮 AI Demand Forecasting & Stock Run-Out Predictor</h3>
+                <p class="text-xs text-slate-400 mb-4">Calculates daily burn rates based on 30-day historical sales velocity.</p>
+                
+                <table class="w-full text-left text-sm">
+                    <thead>
+                        <tr class="border-b text-slate-400 font-bold">
+                            <th class="pb-3">Medicine & Batch</th>
+                            <th class="pb-3">Current Stock</th>
+                            <th class="pb-3">Est. Daily Sales</th>
+                            <th class="pb-3">Days of Stock Remaining</th>
+                            <th class="pb-3">Restock Status</th>
+                        </tr>
+                    </thead>
+                    <tbody id="forecast-table"></tbody>
+                </table>
+            </div>
+        </section>
+
+        <!-- 3. CREATIVE FEATURE 2: REFILL ALERTS TAB -->
+        <section id="content-refills" class="tab-content hidden space-y-6">
+            <div class="bg-white p-6 rounded-xl border border-slate-200 shadow-sm">
+                <h3 class="text-base font-bold text-purple-600 mb-1">📱 Automated Refill Reminders & WhatsApp Dispatch</h3>
+                <p class="text-xs text-slate-400 mb-4">Tracks 30-day chronic care refill dates and dispatches direct WhatsApp reminders.</p>
+
+                <table class="w-full text-left text-sm">
+                    <thead>
+                        <tr class="border-b text-slate-400 font-bold">
+                            <th class="pb-3">Customer</th>
+                            <th class="pb-3">Phone</th>
+                            <th class="pb-3">Medicine</th>
+                            <th class="pb-3">Refill Due Date</th>
+                            <th class="pb-3">Send Reminder</th>
+                        </tr>
+                    </thead>
+                    <tbody id="refill-table"></tbody>
+                </table>
+            </div>
+        </section>
+
+        <!-- 4. ANALYTICS & TRENDS TAB -->
+        <section id="content-analytics" class="tab-content hidden space-y-6">
+            <h2 class="text-lg font-bold text-slate-800">Business Intelligence & Trend Analytics</h2>
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div class="bg-white p-5 rounded-xl border border-slate-200 shadow-sm">
+                    <h3 class="text-xs font-bold text-slate-500 mb-3 uppercase">Trend 1: Top Revenue Generating Medicines (₹)</h3>
+                    <div class="h-64 relative"><canvas id="chart-trend1"></canvas></div>
+                </div>
+
+                <div class="bg-white p-5 rounded-xl border border-slate-200 shadow-sm">
+                    <h3 class="text-xs font-bold text-slate-500 mb-3 uppercase">Trend 2: Category Stock Share Distribution</h3>
+                    <div class="h-64 relative"><canvas id="chart-trend2"></canvas></div>
+                </div>
+
+                <div class="bg-white p-5 rounded-xl border border-slate-200 shadow-sm md:col-span-2">
+                    <h3 class="text-xs font-bold text-slate-500 mb-3 uppercase">Trend 3: Daily Revenue Timeline (₹)</h3>
+                    <div class="h-64 relative"><canvas id="chart-trend3"></canvas></div>
+                </div>
+
+                <div class="bg-white p-5 rounded-xl border border-slate-200 shadow-sm md:col-span-2">
+                    <h3 class="text-xs font-bold text-slate-500 mb-3 uppercase">Trend 4: Low Stock Levels Watchlist (Top 10 Lowest Items)</h3>
+                    <div class="h-80 relative"><canvas id="chart-trend4"></canvas></div>
+                </div>
+
+                <div class="bg-white p-5 rounded-xl border border-slate-200 shadow-sm md:col-span-2">
+                    <h3 class="text-xs font-bold text-slate-500 mb-3 uppercase">Trend 5: Average Price per Drug Category (₹)</h3>
+                    <div class="h-64 relative"><canvas id="chart-trend5"></canvas></div>
+                </div>
+            </div>
+        </section>
+
+        <!-- 5. INVENTORY TAB WITH COLD-CHAIN BADGES (CREATIVE FEATURE 4) -->
+        <section id="content-inventory" class="tab-content hidden grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <div class="bg-white p-6 rounded-xl border border-slate-200 shadow-sm">
+                <h3 class="text-base font-bold text-emerald-600 mb-4">Add Batch Item</h3>
+                <form id="add-form" onsubmit="handleAdd(event)" class="space-y-3">
+                    <input type="text" id="add-name" placeholder="Medicine Name" required class="w-full px-3 py-2 border rounded-lg text-sm">
+                    <input type="text" id="add-batch" placeholder="Batch Number (e.g. BATCH-201)" required class="w-full px-3 py-2 border rounded-lg text-sm">
+                    <input type="text" id="add-cat" placeholder="Category" required class="w-full px-3 py-2 border rounded-lg text-sm">
+                    <select id="add-storage" class="w-full px-3 py-2 border rounded-lg text-sm bg-slate-50">
+                        <option value="Room Temperature (<25°C)">Room Temperature (<25°C)</option>
+                        <option value="Refrigerated (2°C–8°C)">Refrigerated (2°C–8°C)</option>
+                        <option value="Cool & Dry Place (<20°C)">Cool & Dry Place (<20°C)</option>
+                        <option value="Protect from Light">Protect from Light</option>
+                    </select>
+                    <input type="number" id="add-qty" placeholder="Quantity" required class="w-full px-3 py-2 border rounded-lg text-sm">
+                    <input type="number" step="0.01" id="add-price" placeholder="Price (₹)" required class="w-full px-3 py-2 border rounded-lg text-sm">
+                    <input type="date" id="add-exp" required class="w-full px-3 py-2 border rounded-lg text-sm">
+                    <button type="submit" class="w-full bg-emerald-600 text-white font-bold py-2.5 rounded-lg hover:bg-emerald-700 text-sm">➕ Register Stock</button>
+                </form>
+            </div>
+            <div class="lg:col-span-2 bg-white p-6 rounded-xl border border-slate-200 shadow-sm overflow-x-auto">
+                <table class="w-full text-left text-sm">
+                    <thead>
+                        <tr class="border-b text-slate-400 font-bold">
+                            <th class="pb-3">Name</th>
+                            <th class="pb-3">Storage Badge</th>
+                            <th class="pb-3">Stock</th>
+                            <th class="pb-3">Price (₹)</th>
+                            <th class="pb-3">Expiry Date</th>
+                        </tr>
+                    </thead>
+                    <tbody id="inventory-table"></tbody>
+                </table>
+            </div>
+        </section>
+
+        <!-- 6. POS BILLING TAB -->
+        <section id="content-pos" class="tab-content hidden">
+            <div class="bg-white p-8 rounded-xl border border-slate-200 shadow-sm max-w-xl">
+                <h3 class="text-base font-bold text-emerald-600 mb-4">Process Checkout Order</h3>
+                <form id="pos-form" onsubmit="handleSale(event)" class="space-y-4">
+                    <div>
+                        <label class="block text-xs font-bold text-slate-500 mb-1">Select Item & Batch</label>
+                        <select id="pos-select" name="medicine_id" class="w-full px-3 py-2 border rounded-lg text-sm bg-slate-50"></select>
+                    </div>
+                    <div class="grid grid-cols-2 gap-3">
+                        <div>
+                            <label class="block text-xs font-bold text-slate-500 mb-1">Customer Name</label>
+                            <input type="text" name="customer_name" placeholder="Rahul Sharma" class="w-full px-3 py-2 border rounded-lg text-sm">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold text-slate-500 mb-1">Customer Phone</label>
+                            <input type="text" name="customer_phone" placeholder="+919876543210" class="w-full px-3 py-2 border rounded-lg text-sm">
+                        </div>
+                    </div>
+                    <div class="grid grid-cols-2 gap-3">
+                        <div>
+                            <label class="block text-xs font-bold text-slate-500 mb-1">Quantity</label>
+                            <input type="number" name="quantity" min="1" required placeholder="1" class="w-full px-3 py-2 border rounded-lg text-sm">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold text-slate-500 mb-1">Discount (%)</label>
+                            <input type="number" name="discount" min="0" max="100" value="0" class="w-full px-3 py-2 border rounded-lg text-sm">
+                        </div>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-slate-500 mb-1">Attach Prescription (Image/PDF)</label>
+                        <input type="file" name="prescription" accept="image/*,.pdf" class="w-full text-xs text-slate-500">
+                    </div>
+                    <button type="submit" class="w-full bg-emerald-600 text-white font-bold py-3 rounded-lg hover:bg-emerald-700 text-sm">💳 Process Order & Send WhatsApp Receipt</button>
+                </form>
+            </div>
+        </section>
+
+        <!-- 7. SALES HISTORY TAB -->
+        <section id="content-sales" class="tab-content hidden bg-white p-6 rounded-xl border border-slate-200 shadow-sm overflow-x-auto">
+            <table class="w-full text-left text-sm">
+                <thead>
+                    <tr class="border-b text-slate-400 font-bold">
+                        <th class="pb-3">Sale ID</th>
+                        <th class="pb-3">Item & Batch</th>
+                        <th class="pb-3">Customer</th>
+                        <th class="pb-3">Total Paid (₹)</th>
+                        <th class="pb-3">Prescription</th>
+                        <th class="pb-3">Action</th>
+                    </tr>
+                </thead>
+                <tbody id="sales-table"></tbody>
+            </table>
+        </section>
+    </main>
+
+    <script>
+        let charts = {};
+        let cachedTrendsData = null;
+
+        function switchTab(name) {
+            document.querySelectorAll('.tab-content').forEach(el => el.classList.add('hidden'));
+            document.querySelectorAll('.tab-btn').forEach(el => {
+                el.classList.remove('border-b-2', 'border-emerald-600', 'text-emerald-600');
+                el.classList.add('text-slate-500');
+            });
+
+            document.getElementById(`content-${name}`).classList.remove('hidden');
+            document.getElementById(`tab-${name}`).classList.add('border-b-2', 'border-emerald-600', 'text-emerald-600');
+
+            if (name === 'analytics' && cachedTrendsData) {
+                render5Trends(cachedTrendsData);
+            }
+        }
+
+        async function loadData() {
+            const res = await fetch('/api/dashboard');
+            const data = await res.json();
+            cachedTrendsData = data.trends;
+
+            document.getElementById('m-meds').innerText = data.metrics.total_medicines;
+            document.getElementById('m-low').innerText = data.metrics.low_stock_count;
+            document.getElementById('m-ref').innerText = data.metrics.pending_refills_count;
+            document.getElementById('m-rev').innerText = `₹${data.metrics.total_revenue.toFixed(2)}`;
+
+            // Expiry Watchlist
+            const watchlist = document.getElementById('expiry-watchlist');
+            if (data.expiring_soon_items.length === 0) {
+                watchlist.innerHTML = '<p class="text-xs text-emerald-600 font-bold col-span-3">✅ No medicines expiring within 30 days.</p>';
+            } else {
+                watchlist.innerHTML = data.expiring_soon_items.map(m => `
+                    <div class="bg-white p-3 rounded-lg border border-rose-200 text-xs">
+                        <p class="font-bold text-slate-800">${m.name}</p>
+                        <p class="text-slate-500">Batch: ${m.batch_no}</p>
+                        <p class="text-rose-600 font-bold mt-1">Expires: ${m.expiry_date}</p>
+                    </div>
+                `).join('');
+            }
+
+            // FEATURE 5: Forecasting Table
+            document.getElementById('forecast-table').innerHTML = data.forecasting.map(f => `
+                <tr class="border-b hover:bg-slate-50">
+                    <td class="py-3 font-bold">${f.name} <span class="text-xs text-slate-400">(${f.batch_no})</span></td>
+                    <td>${f.current_stock} units</td>
+                    <td>${f.daily_burn_rate} units/day</td>
+                    <td class="font-bold">${f.days_remaining} days</td>
+                    <td><span class="px-2 py-0.5 rounded text-xs font-bold ${f.status === 'CRITICAL RUN OUT' ? 'bg-rose-100 text-rose-600' : (f.status === 'REORDER SOON' ? 'bg-amber-100 text-amber-600' : 'bg-emerald-100 text-emerald-600')}">${f.status}</span></td>
+                </tr>
+            `).join('');
+
+            // FEATURE 2: Refill Alerts Table
+            document.getElementById('refill-table').innerHTML = data.pending_refills.length ? data.pending_refills.map(r => `
+                <tr class="border-b hover:bg-slate-50">
+                    <td class="py-3 font-bold">${r.customer_name}</td>
+                    <td>${r.customer_phone}</td>
+                    <td>${r.medicine_name}</td>
+                    <td class="font-bold text-purple-600">${r.refill_due_date}</td>
+                    <td><a href="https://api.whatsapp.com/send?phone=${r.customer_phone.replace(/\D/g,'')}&text=Hello%20${encodeURIComponent(r.customer_name)}!%20Your%20refill%20for%20${encodeURIComponent(r.medicine_name)}%20is%20due%20on%20${r.refill_due_date}.%20Reply%20to%20confirm." target="_blank" class="bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs px-3 py-1 rounded">💬 WhatsApp Reminder</a></td>
+                </tr>
+            `) : '<tr><td colspan="5" class="py-4 text-xs text-slate-400">No customer refills pending in the next 7 days.</td></tr>';
+
+            // FEATURE 4: Inventory Table with Storage Badges
+            document.getElementById('inventory-table').innerHTML = data.medicines.map(m => `
+                <tr class="border-b hover:bg-slate-50">
+                    <td class="py-3 font-bold">${m.name} <br><span class="text-xs font-mono text-slate-400">${m.batch_no}</span></td>
+                    <td><span class="px-2 py-0.5 rounded text-xs font-bold ${m.storage_condition.includes('Refrigerated') ? 'bg-blue-100 text-blue-700' : 'bg-slate-100 text-slate-600'}">🌡️ ${m.storage_condition}</span></td>
+                    <td><span class="px-2 py-0.5 rounded text-xs font-bold ${m.quantity < 10 ? 'bg-amber-100 text-amber-600' : 'bg-slate-100'}">${m.quantity}</span></td>
+                    <td class="font-bold">₹${m.price.toFixed(2)}</td>
+                    <td class="text-xs font-bold text-rose-500">${m.expiry_date}</td>
+                </tr>
+            `).join('');
+
+            // POS Selector
+            document.getElementById('pos-select').innerHTML = data.medicines.map(m => `
+                <option value="${m.id}">${m.name} [${m.batch_no}] | Stock: ${m.quantity} | ₹${m.price.toFixed(2)}</option>
+            `).join('');
+
+            // Sales Table
+            document.getElementById('sales-table').innerHTML = data.sales.map(s => `
+                <tr class="border-b hover:bg-slate-50">
+                    <td class="py-3">#INV-${s.id}</td>
+                    <td class="font-bold">${s.medicine_name} <span class="text-xs text-slate-400">(${s.batch_no})</span></td>
+                    <td>${s.customer_name || 'Walk-in'} <br><span class="text-xs text-slate-400">${s.customer_phone || ''}</span></td>
+                    <td class="font-bold text-emerald-600">₹${s.total_price.toFixed(2)}</td>
+                    <td>${s.prescription_file ? `<a href="/static/uploads/${s.prescription_file}" target="_blank" class="text-xs text-blue-600 hover:underline">📄 View File</a>` : '<span class="text-xs text-slate-400">None</span>'}</td>
+                    <td><a href="/api/export/pdf/${s.id}" class="text-xs bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold px-3 py-1 rounded">📄 PDF Receipt</a></td>
+                </tr>
+            `).join('');
+        }
+
+        function render5Trends(t) {
+            Object.keys(charts).forEach(key => charts[key].destroy());
+
+            charts.t1 = new Chart(document.getElementById('chart-trend1'), {
+                type: 'bar',
+                data: { labels: t.top_revenue.map(x => x.medicine_name), datasets: [{ label: 'Revenue (₹)', data: t.top_revenue.map(x => x.total_rev), backgroundColor: '#2563EB' }] },
+                options: { responsive: true, maintainAspectRatio: false }
+            });
+
+            charts.t2 = new Chart(document.getElementById('chart-trend2'), {
+                type: 'doughnut',
+                data: { labels: t.category_dist.map(x => x.category), datasets: [{ data: t.category_dist.map(x => x.total_qty), backgroundColor: ['#2563EB', '#10B981', '#8B5CF6', '#F59E0B', '#EF4444', '#06B6D4'] }] },
+                options: { responsive: true, maintainAspectRatio: false }
+            });
+
+            charts.t3 = new Chart(document.getElementById('chart-trend3'), {
+                type: 'line',
+                data: { labels: t.sales_timeline.map(x => x.date), datasets: [{ label: 'Daily Sales (₹)', data: t.sales_timeline.map(x => x.daily_rev), borderColor: '#10B981', backgroundColor: 'rgba(16, 185, 129, 0.1)', fill: true }] },
+                options: { responsive: true, maintainAspectRatio: false }
+            });
+
+            charts.t4 = new Chart(document.getElementById('chart-trend4'), {
+                type: 'bar',
+                data: { labels: t.low_stock_trend.map(x => x.name), datasets: [{ label: 'Stock Level (Units)', data: t.low_stock_trend.map(x => x.quantity), backgroundColor: t.low_stock_trend.map(x => x.quantity < 10 ? '#EF4444' : '#F59E0B') }] },
+                options: { indexAxis: 'y', responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } } }
+            });
+
+            charts.t5 = new Chart(document.getElementById('chart-trend5'), {
+                type: 'polarArea',
+                data: { labels: t.avg_category_price.map(x => x.category), datasets: [{ data: t.avg_category_price.map(x => x.avg_price.toFixed(2)), backgroundColor: ['rgba(37, 99, 235, 0.6)', 'rgba(16, 185, 129, 0.6)', 'rgba(139, 92, 246, 0.6)', 'rgba(245, 158, 11, 0.6)'] }] },
+                options: { responsive: true, maintainAspectRatio: false }
+            });
+        }
+
+        async function handleAdd(e) {
+            e.preventDefault();
+            const body = {
+                name: document.getElementById('add-name').value,
+                batch_no: document.getElementById('add-batch').value,
+                category: document.getElementById('add-cat').value,
+                storage_condition: document.getElementById('add-storage').value,
+                quantity: document.getElementById('add-qty').value,
+                price: document.getElementById('add-price').value,
+                expiry_date: document.getElementById('add-exp').value
+            };
+
+            await fetch('/api/add_medicine', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(body) });
+            document.getElementById('add-form').reset();
+            loadData();
+        }
+
+        async function handleSale(e) {
+            e.preventDefault();
+            const formData = new FormData(document.getElementById('pos-form'));
+
+            const res = await fetch('/api/process_sale', { method: 'POST', body: formData });
+            const data = await res.json();
+
+            if (data.success) {
+                // Open WhatsApp link in new tab automatically
+                if (data.whatsapp_url) {
+                    window.open(data.whatsapp_url, '_blank');
+                }
+                window.location.href = `/api/export/pdf/${data.sale_id}`;
+                document.getElementById('pos-form').reset();
+                loadData();
+            } else {
+                alert(data.message);
+            }
+        }
+
+        loadData();
+    </script>
+</body>
+</html>
